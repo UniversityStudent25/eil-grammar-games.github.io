@@ -1,0 +1,649 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Syntax Starship: SVA Defender</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Roboto:wght@400;500&display=swap');
+
+        :root {
+            --neon-blue: #00f3ff;
+            --neon-red: #ff003c;
+            --neon-green: #39ff14;
+            --neon-yellow: #fcee0a;
+            --dark-bg: #050510;
+            --panel-bg: rgba(20, 20, 40, 0.8);
+        }
+
+        body {
+            font-family: 'Roboto', sans-serif;
+            background-color: var(--dark-bg);
+            color: white;
+            overflow: hidden;
+            height: 100vh;
+            user-select: none;
+            background-image: 
+                radial-gradient(white, rgba(255,255,255,.2) 2px, transparent 3px),
+                radial-gradient(white, rgba(255,255,255,.15) 1px, transparent 2px),
+                radial-gradient(white, rgba(255,255,255,.1) 2px, transparent 3px);
+            background-size: 550px 550px, 350px 350px, 250px 250px;
+            background-position: 0 0, 40px 60px, 130px 270px;
+            animation: starMove 60s linear infinite;
+        }
+
+        @keyframes starMove {
+            from { background-position: 0 0, 40px 60px, 130px 270px; }
+            to { background-position: 550px 550px, 390px 410px, 380px 520px; }
+        }
+
+        h1, h2, .stat-label {
+            font-family: 'Orbitron', sans-serif;
+        }
+
+        .game-container {
+            max-width: 800px;
+            margin: 0 auto;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            position: relative;
+            z-index: 10;
+        }
+
+        /* HUD */
+        .hud {
+            display: flex;
+            justify-content: space-between;
+            padding: 1rem;
+            background: var(--panel-bg);
+            border-bottom: 2px solid var(--neon-blue);
+            backdrop-filter: blur(5px);
+            box-shadow: 0 0 15px var(--neon-blue);
+        }
+
+        /* Timer Bar */
+        .timer-container {
+            width: 100%;
+            height: 8px;
+            background: #333;
+            margin-top: 5px;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        
+        .timer-bar {
+            height: 100%;
+            background: var(--neon-yellow);
+            width: 100%;
+            transition: width 0.1s linear;
+            box-shadow: 0 0 10px var(--neon-yellow);
+        }
+
+        /* Question Area */
+        .question-card {
+            background: var(--panel-bg);
+            border: 1px solid var(--neon-blue);
+            border-radius: 15px;
+            padding: 2rem;
+            margin: 2rem 1rem;
+            text-align: center;
+            font-size: 1.5rem;
+            box-shadow: 0 0 20px rgba(0, 243, 255, 0.2);
+            min-height: 180px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            position: relative;
+        }
+
+        .question-text span {
+            color: var(--neon-yellow);
+            font-weight: bold;
+            text-decoration: underline;
+            text-underline-offset: 4px;
+        }
+
+        .blank-space {
+            display: inline-block;
+            width: 80px;
+            border-bottom: 3px solid var(--neon-blue);
+            margin: 0 5px;
+        }
+
+        /* Options */
+        .options-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+            padding: 0 1rem;
+        }
+
+        .option-btn {
+            background: rgba(0, 0, 0, 0.6);
+            border: 2px solid var(--neon-blue);
+            color: var(--neon-blue);
+            padding: 1.5rem;
+            font-size: 1.25rem;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-family: 'Orbitron', sans-serif;
+            text-transform: uppercase;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .option-btn:hover {
+            background: rgba(0, 243, 255, 0.1);
+            box-shadow: 0 0 15px var(--neon-blue);
+            transform: translateY(-2px);
+        }
+
+        .option-btn:active {
+            transform: scale(0.98);
+        }
+
+        .option-btn.correct {
+            background: var(--neon-green);
+            color: black;
+            border-color: var(--neon-green);
+            box-shadow: 0 0 25px var(--neon-green);
+        }
+
+        .option-btn.wrong {
+            background: var(--neon-red);
+            color: white;
+            border-color: var(--neon-red);
+            box-shadow: 0 0 25px var(--neon-red);
+            animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both;
+        }
+
+        @keyframes shake {
+            10%, 90% { transform: translate3d(-1px, 0, 0); }
+            20%, 80% { transform: translate3d(2px, 0, 0); }
+            30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
+            40%, 60% { transform: translate3d(4px, 0, 0); }
+        }
+
+        /* Screens */
+        .screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(5, 5, 16, 0.95);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 50;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        .start-btn {
+            margin-top: 2rem;
+            padding: 1rem 3rem;
+            font-size: 1.5rem;
+            background: var(--neon-blue);
+            color: black;
+            border: none;
+            border-radius: 50px;
+            font-family: 'Orbitron', sans-serif;
+            cursor: pointer;
+            box-shadow: 0 0 20px var(--neon-blue);
+            transition: transform 0.2s;
+        }
+
+        .start-btn:hover {
+            transform: scale(1.1);
+            box-shadow: 0 0 40px var(--neon-blue);
+        }
+
+        .hearts {
+            color: var(--neon-red);
+            font-size: 1.5rem;
+            text-shadow: 0 0 10px var(--neon-red);
+        }
+
+        .feedback-text {
+            position: absolute;
+            bottom: 10px;
+            width: 100%;
+            text-align: center;
+            font-size: 0.9rem;
+            color: #aaa;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        
+        .feedback-visible {
+            opacity: 1;
+        }
+
+        /* Mobile adjustments */
+        @media (max-width: 600px) {
+            .options-grid {
+                grid-template-columns: 1fr;
+            }
+            .question-card {
+                font-size: 1.2rem;
+                min-height: 150px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Start Screen -->
+    <div id="start-screen" class="screen">
+        <h1 class="text-4xl md:text-6xl mb-4 text-cyan-400 text-center">SYNTAX STARSHIP</h1>
+        <p class="text-xl text-gray-300 mb-8 max-w-md text-center px-4">
+            Pilot the ship by fixing the grammar errors. 
+            <br>Subject-Verb Agreement | CEFR B1-B2
+        </p>
+        <div class="flex gap-4 mb-4">
+            <div class="flex items-center gap-2">
+                <i class="fas fa-clock text-yellow-300"></i> 
+                <span>Speed matters</span>
+            </div>
+            <div class="flex items-center gap-2">
+                <i class="fas fa-heart text-red-500"></i> 
+                <span>3 Lives</span>
+            </div>
+        </div>
+        <button id="start-btn" class="start-btn">LAUNCH MISSION</button>
+        
+        <div class="mt-8 flex items-center gap-3">
+            <span class="text-sm text-gray-400">Audio:</span>
+            <button id="audio-toggle" class="text-cyan-400 border border-cyan-400 px-3 py-1 rounded hover:bg-cyan-400 hover:text-black transition">
+                <i class="fas fa-volume-up"></i> ON
+            </button>
+        </div>
+    </div>
+
+    <!-- Game Over Screen -->
+    <div id="game-over-screen" class="screen hidden">
+        <h1 class="text-5xl text-red-500 mb-2">MISSION FAILED</h1>
+        <h2 class="text-3xl text-white mb-6">Final Score: <span id="final-score" class="text-yellow-300">0</span></h2>
+        <p id="high-score-display" class="text-gray-400 mb-8">High Score: 0</p>
+        <button onclick="game.resetGame()" class="start-btn">RETRY MISSION</button>
+    </div>
+
+    <!-- Main Game Interface -->
+    <div id="game-ui" class="game-container hidden">
+        <!-- HUD -->
+        <div class="hud rounded-b-lg">
+            <div class="flex flex-col">
+                <span class="stat-label text-xs text-cyan-300">SCORE</span>
+                <span id="score" class="text-2xl font-bold">0000</span>
+            </div>
+            <div class="flex flex-col items-center w-1/2 mx-4">
+                <span class="stat-label text-xs text-yellow-300">ENERGY</span>
+                <div class="timer-container">
+                    <div id="timer-bar" class="timer-bar"></div>
+                </div>
+            </div>
+            <div class="flex flex-col items-end">
+                <span class="stat-label text-xs text-red-400">HULL INTEGRITY</span>
+                <div id="lives" class="hearts">
+                    <i class="fas fa-heart"></i>
+                    <i class="fas fa-heart"></i>
+                    <i class="fas fa-heart"></i>
+                </div>
+            </div>
+        </div>
+
+        <!-- Game Content -->
+        <div class="flex-grow flex flex-col justify-center">
+            <div class="question-card">
+                <div id="question-text" class="question-text">
+                    Loading...
+                </div>
+                <div id="feedback-msg" class="feedback-text">Academic Tip: Collective nouns are usually singular.</div>
+            </div>
+
+            <div id="options-container" class="options-grid">
+                <!-- Buttons injected via JS -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- Audio Engine (Web Audio API) ---
+        const AudioEngine = {
+            ctx: null,
+            enabled: true,
+            oscillator: null,
+            gainNode: null,
+            bgmInterval: null,
+
+            init() {
+                if (!this.ctx) {
+                    this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+                }
+            },
+
+            toggle() {
+                this.enabled = !this.enabled;
+                const btn = document.getElementById('audio-toggle');
+                if(this.enabled) {
+                    btn.innerHTML = '<i class="fas fa-volume-up"></i> ON';
+                    this.playBGM();
+                } else {
+                    btn.innerHTML = '<i class="fas fa-volume-mute"></i> OFF';
+                    this.stopBGM();
+                }
+            },
+
+            playTone(freq, type, duration, vol = 0.1) {
+                if (!this.enabled || !this.ctx) return;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                
+                osc.type = type;
+                osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+                
+                gain.gain.setValueAtTime(vol, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + duration);
+
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                
+                osc.start();
+                osc.stop(this.ctx.currentTime + duration);
+            },
+
+            playCorrect() {
+                // High cheerful arpeggio
+                this.playTone(523.25, 'sine', 0.1, 0.1); // C5
+                setTimeout(() => this.playTone(659.25, 'sine', 0.1, 0.1), 100); // E5
+                setTimeout(() => this.playTone(783.99, 'sine', 0.2, 0.1), 200); // G5
+            },
+
+            playWrong() {
+                // Low dissonant buzz
+                this.playTone(150, 'sawtooth', 0.3, 0.1);
+                setTimeout(() => this.playTone(110, 'sawtooth', 0.4, 0.1), 100);
+            },
+
+            playBGM() {
+                if (!this.enabled || this.bgmInterval) return;
+                
+                let note = 0;
+                const bassline = [110, 110, 110, 110, 130.81, 130.81, 98, 98]; // A2 -> C3 -> G2
+                
+                this.bgmInterval = setInterval(() => {
+                    if(this.ctx.state === 'suspended') this.ctx.resume();
+                    this.playTone(bassline[note % 8], 'triangle', 0.2, 0.03);
+                    note++;
+                }, 500); // 120 BPM equivalent
+            },
+
+            stopBGM() {
+                clearInterval(this.bgmInterval);
+                this.bgmInterval = null;
+            }
+        };
+
+        // --- Content Database (B1-B2 Academic Focus) ---
+        const questionBank = [
+            // Gerunds
+            { q: "___ essay drafts is a crucial part of the process.", options: ["Writing", "Write"], correct: "Writing", tip: "Gerunds (verb + -ing) acting as subjects are singular." },
+            { q: "Swimming in the ocean ___ dangerous due to currents.", options: ["is", "are"], correct: "is", tip: "The subject is 'Swimming' (singular), not 'ocean'." },
+            { q: "Analyzing data ___ critical thinking skills.", options: ["require", "requires"], correct: "requires", tip: "The subject is the gerund 'Analyzing', which is singular." },
+            
+            // Collective Nouns
+            { q: "The committee ___ reached a final decision.", options: ["has", "have"], correct: "has", tip: "Collective nouns (committee, team) are usually singular when acting as one unit." },
+            { q: "The audience ___ clapping politely.", options: ["was", "were"], correct: "was", tip: "Audience is treated as a single unit here." },
+            { q: "The team ___ winning the championship this year.", options: ["is", "are"], correct: "is", tip: "Teams are treated as singular entities in American academic English." },
+
+            // Quantifiers & Prepositions
+            { q: "A number of students ___ failed the exam.", options: ["has", "have"], correct: "have", tip: "'A number of' means 'many' and takes a plural verb." },
+            { q: "The number of students ___ increasing every year.", options: ["is", "are"], correct: "is", tip: "'The number' is a specific singular statistic." },
+            { q: "The box of chocolates ___ empty.", options: ["is", "are"], correct: "is", tip: "The subject is 'box' (singular), not 'chocolates'." },
+            { q: "Each of the participants ___ a certificate.", options: ["receive", "receives"], correct: "receives", tip: "'Each' is always singular." },
+
+            // Indefinite Pronouns
+            { q: "Everyone ___ to be happy.", options: ["want", "wants"], correct: "wants", tip: "Everyone/Everybody is grammatically singular." },
+            { q: "Neither of the options ___ suitable.", options: ["seem", "seems"], correct: "seems", tip: "'Neither' acting alone is singular." },
+            { q: "Someone ___ forgotten their backpack.", options: ["has", "have"], correct: "has", tip: "Someone is singular." },
+
+            // "There" / Inverted Subjects
+            { q: "There ___ many reasons for this phenomenon.", options: ["is", "are"], correct: "are", tip: "The subject follows the verb. 'Reasons' is plural." },
+            { q: "There ___ a significant difference between the two.", options: ["is", "are"], correct: "is", tip: "Subject is 'difference' (singular)." },
+            
+            // Compound Subjects
+            { q: "Bread and butter ___ my favorite snack.", options: ["is", "are"], correct: "is", tip: "Some compounds function as a single unit/idea." },
+            { q: "The teacher and the student ___ talking.", options: ["was", "were"], correct: "were", tip: "Two distinct people joined by 'and' make a plural subject." },
+            { q: "Neither the professor nor the students ___ the answer.", options: ["know", "knows"], correct: "know", tip: "With 'nor', the verb agrees with the closer noun (students)." },
+            
+            // Advanced/Misc
+            { q: "Ten dollars ___ a high price for coffee.", options: ["is", "are"], correct: "is", tip: "Money, time, and distance are treated as singular amounts." },
+            { q: "Measles ___ a contagious disease.", options: ["is", "are"], correct: "is", tip: "Some nouns ending in 's' (measles, physics, news) are singular." },
+            { q: "The news ___ shocking.", options: ["was", "were"], correct: "was", tip: "'News' is an uncountable singular noun." }
+        ];
+
+        // --- Game Logic ---
+        const game = {
+            score: 0,
+            lives: 3,
+            timeLeft: 100,
+            maxTime: 100, // Starts at 100, decreases per turn logic
+            timerInterval: null,
+            isPlaying: false,
+            currentQ: null,
+            difficultyMultiplier: 1,
+            highScore: localStorage.getItem('syntaxStarshipHS') || 0,
+
+            elements: {
+                startScreen: document.getElementById('start-screen'),
+                gameUI: document.getElementById('game-ui'),
+                gameOverScreen: document.getElementById('game-over-screen'),
+                questionText: document.getElementById('question-text'),
+                optionsContainer: document.getElementById('options-container'),
+                scoreDisplay: document.getElementById('score'),
+                livesDisplay: document.getElementById('lives'),
+                timerBar: document.getElementById('timer-bar'),
+                finalScore: document.getElementById('final-score'),
+                highScoreDisplay: document.getElementById('high-score-display'),
+                feedback: document.getElementById('feedback-msg')
+            },
+
+            init() {
+                document.getElementById('start-btn').addEventListener('click', () => this.startGame());
+                document.getElementById('audio-toggle').addEventListener('click', () => AudioEngine.toggle());
+                this.updateHighScoreDisplay();
+            },
+
+            startGame() {
+                AudioEngine.init();
+                AudioEngine.playBGM();
+                
+                this.score = 0;
+                this.lives = 3;
+                this.difficultyMultiplier = 1;
+                this.isPlaying = true;
+                
+                this.elements.startScreen.classList.add('hidden');
+                this.elements.gameOverScreen.classList.add('hidden');
+                this.elements.gameUI.classList.remove('hidden');
+                
+                this.updateStats();
+                this.nextTurn();
+                this.startTimerLoop();
+            },
+
+            startTimerLoop() {
+                let lastTime = Date.now();
+                
+                const loop = () => {
+                    if (!this.isPlaying) return;
+                    
+                    const now = Date.now();
+                    const delta = now - lastTime;
+                    lastTime = now;
+
+                    // Speed increases as score increases
+                    const decayRate = 0.05 * (1 + (this.score / 500)); 
+                    
+                    this.timeLeft -= decayRate * (delta / 16); // normalize to roughly 60fps
+
+                    if (this.timeLeft <= 0) {
+                        this.timeLeft = 0;
+                        this.handleWrongAnswer(null, true); // Time out counts as wrong
+                    }
+
+                    this.elements.timerBar.style.width = `${this.timeLeft}%`;
+                    
+                    // Color changes based on urgency
+                    if(this.timeLeft < 30) this.elements.timerBar.style.background = '#ff003c';
+                    else if(this.timeLeft < 60) this.elements.timerBar.style.background = '#fcee0a';
+                    else this.elements.timerBar.style.background = '#39ff14';
+
+                    requestAnimationFrame(loop);
+                };
+                requestAnimationFrame(loop);
+            },
+
+            nextTurn() {
+                // Reset Timer slightly, but not fully to increase difficulty
+                this.timeLeft = Math.min(100, this.timeLeft + 30); 
+                
+                // Pick random question
+                const rIndex = Math.floor(Math.random() * questionBank.length);
+                this.currentQ = questionBank[rIndex];
+
+                // Render
+                this.renderQuestion();
+            },
+
+            renderQuestion() {
+                // Format question with blank
+                const parts = this.currentQ.q.split('___');
+                let html = '';
+                
+                // Basic check to see if blank is start, middle or end
+                if(this.currentQ.q.startsWith('___')) {
+                    html = `<div class="mb-4"><span class="blank-space"></span> ${parts[1]}</div>`;
+                } else if (parts.length > 1) {
+                    html = `<div class="mb-4">${parts[0]} <span class="blank-space"></span> ${parts[1]}</div>`;
+                } else {
+                    // Should not happen based on data, but fallback
+                    html = this.currentQ.q;
+                }
+
+                this.elements.questionText.innerHTML = html;
+                this.elements.feedback.classList.remove('feedback-visible');
+
+                // Shuffle options
+                const opts = [...this.currentQ.options].sort(() => Math.random() - 0.5);
+                
+                this.elements.optionsContainer.innerHTML = '';
+                opts.forEach(opt => {
+                    const btn = document.createElement('button');
+                    btn.className = 'option-btn';
+                    btn.textContent = opt;
+                    btn.onclick = (e) => this.checkAnswer(opt, e.target);
+                    this.elements.optionsContainer.appendChild(btn);
+                });
+            },
+
+            checkAnswer(selected, btnElement) {
+                if (!this.isPlaying) return; // Prevent double clicking
+
+                // Disable all buttons momentarily
+                const allBtns = document.querySelectorAll('.option-btn');
+                allBtns.forEach(b => b.disabled = true);
+
+                if (selected === this.currentQ.correct) {
+                    // Correct
+                    AudioEngine.playCorrect();
+                    btnElement.classList.add('correct');
+                    this.score += 100 + Math.floor(this.timeLeft); // Bonus for speed
+                    this.updateStats();
+                    
+                    // Fill in the blank visually
+                    this.elements.questionText.querySelector('.blank-space').style.borderBottom = "none";
+                    this.elements.questionText.querySelector('.blank-space').textContent = selected;
+                    this.elements.questionText.querySelector('.blank-space').style.color = "#39ff14";
+
+                    setTimeout(() => this.nextTurn(), 800);
+                } else {
+                    // Wrong
+                    this.handleWrongAnswer(btnElement, false);
+                }
+            },
+
+            handleWrongAnswer(btnElement, isTimeout) {
+                AudioEngine.playWrong();
+                
+                if(btnElement) btnElement.classList.add('wrong');
+                
+                // Show feedback
+                this.elements.feedback.textContent = this.currentQ.tip;
+                this.elements.feedback.classList.add('feedback-visible');
+
+                this.lives--;
+                this.updateStats();
+
+                if (this.lives <= 0) {
+                    this.gameOver();
+                } else {
+                    // Reset timer to give a chance to recover
+                    this.timeLeft = 100;
+                    setTimeout(() => this.nextTurn(), 1500); // Longer pause to read tip
+                }
+            },
+
+            updateStats() {
+                this.elements.scoreDisplay.textContent = this.score.toString().padStart(4, '0');
+                
+                // Update hearts
+                let heartsHtml = '';
+                for(let i=0; i<3; i++) {
+                    if(i < this.lives) heartsHtml += '<i class="fas fa-heart"></i> ';
+                    else heartsHtml += '<i class="far fa-heart" style="opacity:0.3"></i> ';
+                }
+                this.elements.livesDisplay.innerHTML = heartsHtml;
+            },
+
+            gameOver() {
+                this.isPlaying = false;
+                AudioEngine.stopBGM();
+                
+                // Update High Score
+                if(this.score > this.highScore) {
+                    this.highScore = this.score;
+                    localStorage.setItem('syntaxStarshipHS', this.highScore);
+                }
+
+                this.elements.gameUI.classList.add('hidden');
+                this.elements.gameOverScreen.classList.remove('hidden');
+                this.elements.finalScore.textContent = this.score;
+                this.updateHighScoreDisplay();
+            },
+
+            updateHighScoreDisplay() {
+                this.elements.highScoreDisplay.textContent = `High Score: ${this.highScore}`;
+            },
+
+            resetGame() {
+                this.startGame();
+            }
+        };
+
+        // Initialize
+        game.init();
+
+    </script>
+</body>
+</html>

@@ -1,0 +1,704 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Defuse the Syntax: Transition Technician</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Black+Ops+One&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --led-red: #ff0000;
+            --led-green: #00ff00;
+            --bg-metal: #2d3436;
+            --panel-gray: #636e72;
+            --wire-shadow: rgba(0,0,0,0.5);
+        }
+
+        body {
+            font-family: 'Share Tech Mono', monospace;
+            background-color: #111;
+            color: #eee;
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-image: repeating-linear-gradient(
+                45deg,
+                #000 0,
+                #000 10px,
+                #111 10px,
+                #111 20px
+            );
+        }
+
+        /* The Bomb Casing */
+        .bomb-casing {
+            position: relative;
+            width: 95%;
+            max-width: 900px;
+            height: 600px;
+            background: #222;
+            border-radius: 20px;
+            box-shadow: 
+                inset 0 0 50px #000,
+                0 0 20px #000;
+            border: 4px solid #444;
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+            user-select: none;
+        }
+
+        /* Top Panel: Timer & Status */
+        .top-panel {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #111;
+            padding: 15px;
+            border-radius: 10px;
+            border: 2px solid #555;
+            margin-bottom: 20px;
+            box-shadow: inset 0 0 10px #000;
+        }
+
+        .timer-display {
+            font-family: 'Black Ops One', cursive;
+            font-size: 4rem;
+            color: var(--led-red);
+            text-shadow: 0 0 10px var(--led-red);
+            background: #000;
+            padding: 5px 20px;
+            border-radius: 5px;
+            border: 1px solid #333;
+            letter-spacing: 5px;
+        }
+
+        .strikes {
+            display: flex;
+            gap: 10px;
+        }
+
+        .strike-led {
+            width: 30px;
+            height: 30px;
+            background: #330000;
+            border-radius: 50%;
+            border: 2px solid #555;
+            box-shadow: inset 2px 2px 5px rgba(0,0,0,0.5);
+        }
+
+        .strike-led.active {
+            background: #ff0000;
+            box-shadow: 0 0 15px #ff0000, inset 2px 2px 5px rgba(255,255,255,0.4);
+        }
+
+        /* Wire Bay */
+        .wire-bay {
+            position: relative;
+            flex-grow: 1;
+            background: #2d3436;
+            border-radius: 10px;
+            border: 2px solid #555;
+            display: flex;
+            justify-content: space-between;
+            padding: 20px 40px;
+            overflow: hidden; /* Keep wires inside */
+        }
+
+        /* Canvas for Wires */
+        #wire-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 10;
+            pointer-events: none; /* Let clicks pass through to ports */
+        }
+
+        /* Columns */
+        .column {
+            display: flex;
+            flex-direction: column;
+            justify-content: space-around;
+            width: 40%;
+            z-index: 20;
+        }
+
+        .port-item {
+            display: flex;
+            align-items: center;
+            margin: 10px 0;
+            height: 60px;
+            transition: transform 0.2s;
+        }
+
+        .port-label {
+            background: #b2bec3;
+            color: #000;
+            padding: 10px 15px;
+            border-radius: 4px;
+            font-weight: bold;
+            font-size: 1.1rem;
+            flex-grow: 1;
+            box-shadow: 2px 2px 5px rgba(0,0,0,0.5);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            border: 1px solid #777;
+        }
+
+        /* Connectors */
+        .connector {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            background: radial-gradient(circle at 30% 30%, #aaa, #333);
+            border: 2px solid #222;
+            cursor: pointer;
+            position: relative;
+            transition: transform 0.2s;
+        }
+        
+        .connector:hover {
+            transform: scale(1.2);
+            box-shadow: 0 0 10px #fff;
+        }
+
+        .connector.selected {
+            box-shadow: 0 0 15px #00e5ff;
+            background: radial-gradient(circle at 30% 30%, #00e5ff, #004d40);
+        }
+
+        /* Left Side Layout */
+        .col-left .port-item {
+            flex-direction: row;
+        }
+        .col-left .port-label {
+            margin-right: 15px;
+            text-align: right;
+        }
+
+        /* Right Side Layout */
+        .col-right .port-item {
+            flex-direction: row-reverse;
+        }
+        .col-right .port-label {
+            margin-left: 15px;
+            text-align: left;
+        }
+
+        /* Modals */
+        .screen-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.9);
+            z-index: 100;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+        }
+        
+        .hidden { display: none !important; }
+
+        .btn-start {
+            margin-top: 30px;
+            padding: 15px 40px;
+            font-size: 2rem;
+            font-family: 'Black Ops One', cursive;
+            background: #e17055;
+            color: #000;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            box-shadow: 0 0 20px #e17055;
+            transition: all 0.2s;
+        }
+        .btn-start:hover {
+            transform: scale(1.1);
+            background: #ff7675;
+        }
+
+        .glitch {
+            animation: glitch 1s linear infinite;
+        }
+        @keyframes glitch {
+            2%, 64% { transform: translate(2px,0) skew(0deg); }
+            4%, 60% { transform: translate(-2px,0) skew(0deg); }
+            62% { transform: translate(0,0) skew(5deg); }
+        }
+
+        .shake {
+            animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both;
+        }
+        @keyframes shake {
+            10%, 90% { transform: translate3d(-1px, 0, 0); }
+            20%, 80% { transform: translate3d(2px, 0, 0); }
+            30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
+            40%, 60% { transform: translate3d(4px, 0, 0); }
+        }
+
+        .level-badge {
+            position: absolute;
+            bottom: 10px;
+            right: 20px;
+            color: #777;
+            font-size: 1.5rem;
+        }
+
+    </style>
+</head>
+<body>
+
+    <!-- Game Container -->
+    <div class="bomb-casing" id="game-ui">
+        <!-- Top Panel -->
+        <div class="top-panel">
+            <div class="text-gray-400 text-sm">
+                <div>OPERATIVE: STUDENT</div>
+                <div>TASK: LINK PROTOCOLS</div>
+            </div>
+            
+            <div id="timer" class="timer-display">00:00</div>
+
+            <div class="flex flex-col items-center">
+                <span class="text-xs text-red-500 mb-1">ERRORS</span>
+                <div class="strikes">
+                    <div id="strike-1" class="strike-led"></div>
+                    <div id="strike-2" class="strike-led"></div>
+                    <div id="strike-3" class="strike-led"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Wire Bay -->
+        <div class="wire-bay">
+            <canvas id="wire-canvas"></canvas>
+
+            <!-- Left Column (Functions/Sentences) -->
+            <div class="column col-left" id="col-left">
+                <!-- Injected via JS -->
+            </div>
+
+            <!-- Right Column (Transition Words) -->
+            <div class="column col-right" id="col-right">
+                <!-- Injected via JS -->
+            </div>
+        </div>
+
+        <div class="level-badge">LEVEL <span id="level-display">1</span></div>
+    </div>
+
+    <!-- Start Screen -->
+    <div id="start-screen" class="screen-overlay">
+        <h1 class="text-6xl text-red-600 mb-4" style="font-family: 'Black Ops One'">SYNTAX SQUAD</h1>
+        <h2 class="text-2xl text-gray-300 mb-8 font-mono">BOMB DISPOSAL UNIT</h2>
+        
+        <div class="bg-gray-800 p-6 rounded border border-gray-600 max-w-lg text-left font-mono text-sm leading-relaxed">
+            <p class="mb-2 text-green-400">> INCOMING TRANSMISSION...</p>
+            <p class="mb-4">Operative, the bomb is wired with incorrect academic logic. You must reroute the circuits.</p>
+            <p class="mb-2 text-yellow-400">> MISSION OBJECTIVE:</p>
+            <p class="mb-4">Connect the <strong>Function/Meaning</strong> (Left) to the correct <strong>Transition Word</strong> (Right).</p>
+            <p class="mb-2 text-red-400">> WARNING:</p>
+            <p>You have 60 seconds. Wrong connections will accelerate the timer.</p>
+        </div>
+
+        <button class="btn-start" onclick="game.start()">DEFUSE</button>
+    </div>
+
+    <!-- Game Over Screen -->
+    <div id="game-over" class="screen-overlay hidden">
+        <h1 class="text-8xl text-red-600 mb-4 glitch" style="font-family: 'Black Ops One'">BOOM</h1>
+        <p class="text-2xl text-gray-300 mb-8">SIGNAL LOST</p>
+        <p class="text-xl mb-6">Levels Cleared: <span id="final-score" class="text-green-400">0</span></p>
+        <button class="btn-start" onclick="game.start()">RETRY</button>
+    </div>
+
+    <!-- Victory Screen -->
+    <div id="victory-screen" class="screen-overlay hidden">
+        <h1 class="text-6xl text-green-500 mb-4" style="font-family: 'Black Ops One'">BOMB DEFUSED</h1>
+        <p class="text-2xl text-gray-300 mb-8">Academic Integrity Restored</p>
+        <p class="text-xl mb-6">Time Remaining: <span id="time-score" class="text-yellow-400">00:00</span></p>
+        <button class="btn-start" onclick="game.start()">NEXT MISSION</button>
+    </div>
+
+    <script>
+        // --- Audio System ---
+        const AudioSys = {
+            ctx: null,
+            init() {
+                window.AudioContext = window.AudioContext || window.webkitAudioContext;
+                this.ctx = new AudioContext();
+            },
+            playTone(freq, type, duration, vol=0.1) {
+                if(!this.ctx) return;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                const t = this.ctx.currentTime;
+                
+                osc.type = type;
+                osc.frequency.setValueAtTime(freq, t);
+                gain.gain.setValueAtTime(vol, t);
+                gain.gain.exponentialRampToValueAtTime(0.01, t + duration);
+                
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start(t);
+                osc.stop(t + duration);
+            },
+            playClick() { this.playTone(800, 'square', 0.05, 0.05); },
+            playConnect() { 
+                this.playTone(440, 'sine', 0.1, 0.1); 
+                setTimeout(() => this.playTone(880, 'sine', 0.2, 0.1), 100);
+            },
+            playError() {
+                this.playTone(150, 'sawtooth', 0.3, 0.2);
+                this.playTone(100, 'sawtooth', 0.3, 0.2);
+            },
+            playTick() { this.playTone(2000, 'square', 0.02, 0.02); }
+        };
+
+        // --- Data: Academic Transitions ---
+        // Added 'c' property for Category to ensure distinct types per round
+        const dataPool = [
+            // Contrast
+            { c: 'contrast', f: "To show contrast", w: "However" },
+            { c: 'contrast', f: "Despite this", w: "Nevertheless" },
+            { c: 'contrast', f: "On the other hand", w: "Conversely" },
+            { c: 'contrast', f: "The opposite is true", w: "In contrast" },
+            // Addition
+            { c: 'addition', f: "To add information", w: "Furthermore" },
+            { c: 'addition', f: "Additionally", w: "Moreover" },
+            { c: 'addition', f: "Also", w: "In addition" },
+            // Result/Effect
+            { c: 'result', f: "As a result", w: "Therefore" },
+            { c: 'result', f: "Because of this", w: "Consequently" },
+            { c: 'result', f: "Hence", w: "Thus" },
+            // Example
+            { c: 'example', f: "For example", w: "For instance" },
+            { c: 'example', f: "To illustrate", w: "Specifically" },
+            { c: 'example', f: "A key example is", w: "Notably" },
+            // Clarification
+            { c: 'clarify', f: "In other words", w: "That is to say" },
+            { c: 'clarify', f: "To clarify", w: "To put it another way" },
+            // Sequence
+            { c: 'seq', f: "First of all", w: "Initially" },
+            { c: 'seq', f: "After that", w: "Subsequently" },
+            { c: 'seq', f: "Finally", w: "Ultimately" }
+        ];
+
+        // --- Game Logic ---
+        const game = {
+            timeLeft: 60,
+            timerInterval: null,
+            level: 1,
+            strikes: 0,
+            activePairs: [],
+            connections: [], // { startId, endId, color, isFixed }
+            selectedPort: null, // { id, side, y, x }
+            colors: ['#e74c3c', '#3498db', '#f1c40f', '#9b59b6', '#2ecc71'], // Wire colors
+            
+            // DOM Elements
+            canvas: document.getElementById('wire-canvas'),
+            ctx: document.getElementById('wire-canvas').getContext('2d'),
+            
+            init() {
+                window.addEventListener('resize', () => this.resizeCanvas());
+                this.resizeCanvas();
+                this.loop();
+            },
+
+            resizeCanvas() {
+                const bay = document.querySelector('.wire-bay');
+                this.canvas.width = bay.clientWidth;
+                this.canvas.height = bay.clientHeight;
+                this.drawWires();
+            },
+
+            start() {
+                AudioSys.init();
+                document.querySelectorAll('.screen-overlay').forEach(el => el.classList.add('hidden'));
+                
+                this.level = 1;
+                this.strikes = 0;
+                this.timeLeft = 60; // Reset timer for fresh game
+                
+                this.resetStrikes();
+                this.startLevel();
+                this.startTimer();
+            },
+
+            startLevel() {
+                // 1. Clear previous state
+                this.connections = [];
+                this.selectedPort = null;
+                document.getElementById('level-display').innerText = this.level;
+                
+                // 2. Explicitly clear the canvas of old wires immediately
+                this.drawWires();
+
+                // 3. Select 4 distinct categories to prevent synonyms (e.g. Furthermore + Moreover)
+                // Group data by category
+                const categories = {};
+                dataPool.forEach(item => {
+                    if (!categories[item.c]) categories[item.c] = [];
+                    categories[item.c].push(item);
+                });
+
+                // Get distinct category keys and shuffle them
+                const distinctCats = Object.keys(categories).sort(() => 0.5 - Math.random());
+                
+                // Select up to 4 distinct categories (or fewer if dataPool is small, but we have 6)
+                const selectedCats = distinctCats.slice(0, 4);
+
+                // For each selected category, pick ONE random pair
+                this.activePairs = selectedCats.map(cat => {
+                    const items = categories[cat];
+                    return items[Math.floor(Math.random() * items.length)];
+                });
+
+                this.renderPorts();
+            },
+
+            renderPorts() {
+                const leftCol = document.getElementById('col-left');
+                const rightCol = document.getElementById('col-right');
+                leftCol.innerHTML = '';
+                rightCol.innerHTML = '';
+
+                // Left side (Functions) - Order A
+                this.activePairs.forEach((pair, idx) => {
+                    const id = `L-${idx}`;
+                    const html = `
+                        <div class="port-item">
+                            <div class="port-label text-xs md:text-sm">${pair.f}</div>
+                            <div class="connector" id="${id}" data-side="left" data-match="${pair.w}" onclick="game.clickPort('${id}', 'left', '${pair.w}')"></div>
+                        </div>`;
+                    leftCol.insertAdjacentHTML('beforeend', html);
+                });
+
+                // Right side (Words) - Shuffle Order
+                const rightSide = [...this.activePairs].sort(() => 0.5 - Math.random());
+                rightSide.forEach((pair, idx) => {
+                    const id = `R-${idx}`;
+                    const html = `
+                        <div class="port-item">
+                            <div class="connector" id="${id}" data-side="right" data-word="${pair.w}" onclick="game.clickPort('${id}', 'right', '${pair.w}')"></div>
+                            <div class="port-label text-xs md:text-sm text-yellow-100" style="background:#444">${pair.w}</div>
+                        </div>`;
+                    rightCol.insertAdjacentHTML('beforeend', html);
+                });
+            },
+
+            clickPort(id, side, value) {
+                // Ignore if already connected
+                if (this.connections.some(c => c.startId === id || c.endId === id)) return;
+
+                const el = document.getElementById(id);
+                const rect = el.getBoundingClientRect();
+                const bayRect = this.canvas.getBoundingClientRect();
+                
+                // Calculate center of connector relative to canvas
+                const x = rect.left + rect.width/2 - bayRect.left;
+                const y = rect.top + rect.height/2 - bayRect.top;
+
+                AudioSys.playClick();
+
+                if (!this.selectedPort) {
+                    // Select first point
+                    this.selectedPort = { id, side, value, x, y, el };
+                    el.classList.add('selected');
+                } else {
+                    // Second point clicked
+                    if (this.selectedPort.id === id) {
+                        // Deselect
+                        this.selectedPort = null;
+                        el.classList.remove('selected');
+                        this.drawWires();
+                        return;
+                    }
+
+                    if (this.selectedPort.side === side) {
+                        // Changed mind, selected same side
+                        this.selectedPort.el.classList.remove('selected');
+                        this.selectedPort = { id, side, value, x, y, el };
+                        el.classList.add('selected');
+                        return;
+                    }
+
+                    // Valid connection attempt (Left to Right)
+                    this.checkConnection(this.selectedPort, { id, side, value, x, y, el });
+                }
+            },
+
+            checkConnection(p1, p2) {
+                // Determine match
+                let isMatch = false;
+                // p1.value is from data-match or data-word.
+                // Left side has data-match (target word). Right side has data-word (actual word).
+                
+                // If p1 is left, p1.value is the target word. p2.value should be the same.
+                // If p1 is right, p1.value is the word. p2.value is the target word.
+                
+                if (p1.value === p2.value) isMatch = true;
+
+                // Remove selection visual
+                p1.el.classList.remove('selected');
+                p2.el.classList.remove('selected');
+                this.selectedPort = null;
+
+                if (isMatch) {
+                    AudioSys.playConnect();
+                    // Store connection
+                    this.connections.push({
+                        startId: p1.id,
+                        endId: p2.id,
+                        p1: {x: p1.x, y: p1.y},
+                        p2: {x: p2.x, y: p2.y},
+                        color: this.colors[this.connections.length % this.colors.length]
+                    });
+                    
+                    // Check Level Completion
+                    if (this.connections.length === 4) {
+                        setTimeout(() => this.nextLevel(), 500);
+                    }
+                } else {
+                    this.handleMistake();
+                }
+
+                this.drawWires();
+            },
+
+            handleMistake() {
+                AudioSys.playError();
+                
+                // Visual Shake
+                document.getElementById('game-ui').classList.add('shake');
+                setTimeout(() => document.getElementById('game-ui').classList.remove('shake'), 500);
+
+                // Strike
+                this.strikes++;
+                if (this.strikes <= 3) {
+                    document.getElementById(`strike-${this.strikes}`).classList.add('active');
+                }
+
+                // Time Penalty
+                this.timeLeft -= 10; 
+                if (this.timeLeft < 0) this.timeLeft = 0;
+                
+                this.updateTimerDisplay();
+
+                if (this.strikes >= 3 || this.timeLeft <= 0) {
+                    this.gameOver();
+                }
+            },
+
+            drawWires() {
+                this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+                
+                // Draw fixed connections
+                this.connections.forEach(c => {
+                    this.drawSingleWire(c.p1.x, c.p1.y, c.p2.x, c.p2.y, c.color);
+                });
+
+                // Draw active drag line (if we want dragging visually, but click-click is better for mobile/precision)
+                // For click-click, maybe draw line to mouse? 
+                // Let's stick to click-click logic without mouse tracking for simplicity in single file.
+                
+                if (this.selectedPort) {
+                    // Highlight selected
+                    this.ctx.beginPath();
+                    this.ctx.arc(this.selectedPort.x, this.selectedPort.y, 10, 0, Math.PI*2);
+                    this.ctx.fillStyle = "#fff";
+                    this.ctx.fill();
+                }
+            },
+
+            drawSingleWire(x1, y1, x2, y2, color) {
+                this.ctx.shadowBlur = 10;
+                this.ctx.shadowColor = color;
+                this.ctx.strokeStyle = color;
+                this.ctx.lineWidth = 6;
+                this.ctx.lineCap = 'round';
+                
+                this.ctx.beginPath();
+                this.ctx.moveTo(x1, y1);
+                
+                // Curvy wire
+                const cp1x = x1 + (x2 - x1) / 2;
+                const cp1y = y1;
+                const cp2x = x1 + (x2 - x1) / 2;
+                const cp2y = y2;
+                
+                this.ctx.bezierCurveTo(cp1x, cp1y, cp2x, cp2y, x2, y2);
+                this.ctx.stroke();
+
+                // Highlight strip
+                this.ctx.shadowBlur = 0;
+                this.ctx.strokeStyle = "rgba(255,255,255,0.3)";
+                this.ctx.lineWidth = 2;
+                this.ctx.stroke();
+            },
+
+            nextLevel() {
+                this.level++;
+                this.timeLeft += 15; // Bonus time
+                this.startLevel();
+            },
+
+            startTimer() {
+                clearInterval(this.timerInterval);
+                this.timerInterval = setInterval(() => {
+                    this.timeLeft--;
+                    // Tick sound every second
+                    AudioSys.playTick();
+                    
+                    if (this.timeLeft <= 10) {
+                        // Urgency
+                        document.getElementById('timer').style.color = (this.timeLeft % 2 === 0) ? '#ff0000' : '#fff';
+                    }
+
+                    if (this.timeLeft <= 0) {
+                        this.timeLeft = 0;
+                        this.gameOver();
+                    }
+                    this.updateTimerDisplay();
+                }, 1000);
+            },
+
+            updateTimerDisplay() {
+                const m = Math.floor(this.timeLeft / 60);
+                const s = this.timeLeft % 60;
+                const str = `${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;
+                document.getElementById('timer').innerText = str;
+            },
+
+            resetStrikes() {
+                document.querySelectorAll('.strike-led').forEach(el => el.classList.remove('active'));
+            },
+
+            gameOver() {
+                clearInterval(this.timerInterval);
+                document.getElementById('game-over').classList.remove('hidden');
+                document.getElementById('final-score').innerText = this.level - 1;
+            },
+
+            loop() {
+                // Animation loop if needed for dynamic wires
+                requestAnimationFrame(() => this.loop());
+            }
+        };
+
+        // Boot
+        window.onload = () => game.init();
+
+    </script>
+</body>
+</html>

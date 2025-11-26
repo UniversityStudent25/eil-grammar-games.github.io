@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Case File: The Missing Suffix</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Special+Elite&family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --paper-color: #fdfbf7;
+            --folder-color: #e0c097;
+            --ink-black: #2c2c2c;
+            --stamp-red: #c0392b;
+            --stamp-green: #27ae60;
+            --desk-color: #2c2520;
+        }
+
+        body {
+            font-family: 'Courier Prime', monospace;
+            background-color: var(--desk-color);
+            background-image: radial-gradient(#3e342e 1px, transparent 1px);
+            background-size: 20px 20px;
+            height: 100vh;
+            color: var(--ink-black);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .typewriter {
+            font-family: 'Special Elite', cursive;
+        }
+
+        /* File Folder Container */
+        .folder {
+            background-color: var(--folder-color);
+            width: 95%;
+            max-width: 700px;
+            min-height: 500px;
+            border-radius: 10px;
+            position: relative;
+            box-shadow: 10px 10px 30px rgba(0,0,0,0.5);
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+            transform: rotate(-1deg);
+        }
+
+        .folder-tab {
+            position: absolute;
+            top: -30px;
+            left: 0;
+            width: 200px;
+            height: 40px;
+            background-color: var(--folder-color);
+            border-radius: 10px 10px 0 0;
+            display: flex;
+            align-items: center;
+            padding-left: 20px;
+            font-weight: bold;
+            color: rgba(0,0,0,0.6);
+            box-shadow: 5px -5px 10px rgba(0,0,0,0.1);
+        }
+
+        /* The Evidence Paper */
+        .paper {
+            background-color: var(--paper-color);
+            flex-grow: 1;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            padding: 40px;
+            position: relative;
+            background-image: linear-gradient(#e8e8e8 1px, transparent 1px);
+            background-size: 100% 30px;
+            line-height: 30px;
+        }
+
+        .paper::before {
+            content: '';
+            position: absolute;
+            top: 0; bottom: 0; left: 40px;
+            border-left: 2px solid #ffcccc;
+        }
+
+        /* Input Styling */
+        .input-line {
+            display: inline-block;
+            border: none;
+            border-bottom: 2px solid #333;
+            background: rgba(255, 255, 0, 0.1);
+            font-family: 'Special Elite', cursive;
+            font-size: 1.2rem;
+            color: #000080;
+            width: 180px;
+            text-align: center;
+            outline: none;
+            padding: 0 5px;
+        }
+
+        .input-line:focus {
+            background: rgba(255, 255, 0, 0.2);
+        }
+
+        /* Stamps */
+        .stamp {
+            position: absolute;
+            font-family: 'Special Elite', cursive;
+            font-weight: bold;
+            font-size: 3rem;
+            text-transform: uppercase;
+            border: 5px solid;
+            padding: 10px 20px;
+            border-radius: 10px;
+            opacity: 0;
+            transform: scale(2) rotate(-15deg);
+            pointer-events: none;
+            z-index: 50;
+            transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            mix-blend-mode: multiply;
+        }
+
+        .stamp.visible {
+            opacity: 0.8;
+            transform: scale(1) rotate(-15deg);
+        }
+
+        .stamp-approved {
+            color: var(--stamp-green);
+            border-color: var(--stamp-green);
+            top: 30%; right: 10%;
+        }
+
+        .stamp-rejected {
+            color: var(--stamp-red);
+            border-color: var(--stamp-red);
+            top: 30%; right: 10%;
+            transform: scale(1) rotate(15deg);
+        }
+
+        /* Screens */
+        .overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.85);
+            z-index: 100;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: #fdfbf7;
+            text-align: center;
+        }
+
+        .btn-retro {
+            background: #333;
+            color: #fdfbf7;
+            border: 2px solid #fdfbf7;
+            padding: 10px 30px;
+            font-family: 'Courier Prime', monospace;
+            font-size: 1.2rem;
+            cursor: pointer;
+            margin-top: 20px;
+            transition: all 0.2s;
+        }
+
+        .btn-retro:hover {
+            background: #fdfbf7;
+            color: #333;
+        }
+
+        /* Progress */
+        .progress-container {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 80%;
+            text-align: center;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 10px;
+            background: #ccc;
+            border-radius: 5px;
+            margin-top: 5px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: #333;
+            width: 0%;
+            transition: width 0.3s;
+        }
+
+        /* Clue Box */
+        .clue-box {
+            position: absolute;
+            right: 20px;
+            top: 20px;
+            width: 150px;
+            transform: rotate(3deg);
+            background: #fff;
+            padding: 10px;
+            box-shadow: 2px 2px 5px rgba(0,0,0,0.2);
+            font-size: 0.9rem;
+            border: 1px solid #ccc;
+        }
+        
+        .paperclip {
+            position: absolute;
+            top: -15px;
+            right: 40px;
+            width: 20px;
+            height: 40px;
+            border: 4px solid #aaa;
+            border-bottom: none;
+            border-radius: 20px 20px 0 0;
+            z-index: 20;
+        }
+
+        .magnifying-glass {
+            position: absolute;
+            bottom: -40px;
+            right: -40px;
+            font-size: 8rem;
+            color: rgba(255,255,255,0.1);
+            transform: rotate(-20deg);
+            z-index: 0;
+        }
+
+    </style>
+</head>
+<body>
+
+    <!-- Background Decor -->
+    <i class="fas fa-search magnifying-glass"></i>
+
+    <!-- Main Game Area -->
+    <div id="game-container" class="folder hidden">
+        <div class="folder-tab">CASE #802</div>
+        
+        <div class="paper">
+            <div class="paperclip"></div>
+            
+            <!-- Clue Note -->
+            <div class="clue-box typewriter">
+                <strong class="text-red-800">EVIDENCE:</strong><br>
+                Base Verb:<br>
+                <span id="base-verb" class="text-xl font-bold">...</span>
+            </div>
+
+            <!-- Content -->
+            <div class="mt-8 ml-8">
+                <h2 class="text-xl font-bold underline mb-6">WITNESS STATEMENT</h2>
+                
+                <p id="sentence-container" class="text-xl leading-10 typewriter">
+                    <!-- Sentence injected here -->
+                </p>
+
+                <div id="feedback-msg" class="mt-8 text-sm text-red-700 font-bold italic h-8"></div>
+            </div>
+
+            <!-- Stamps -->
+            <div id="stamp-ok" class="stamp stamp-approved">VERIFIED</div>
+            <div id="stamp-no" class="stamp stamp-rejected">REJECTED</div>
+
+            <!-- Progress -->
+            <div class="progress-container">
+                <p class="text-sm">CASE PROGRESS</p>
+                <div class="progress-bar">
+                    <div id="progress-fill" class="progress-fill"></div>
+                </div>
+                <div class="flex justify-between mt-1 text-xs text-gray-500">
+                    <span>Attempts Left: <span id="lives">3</span></span>
+                    <span>Solved: <span id="score">0</span>/10</span>
+                </div>
+            </div>
+        </div>
+        
+        <button id="submit-btn" class="absolute bottom-4 right-8 btn-retro py-2 px-4 text-sm z-10">SUBMIT EVIDENCE</button>
+    </div>
+
+    <!-- Start Screen -->
+    <div id="start-screen" class="overlay">
+        <h1 class="text-5xl mb-2 typewriter tracking-widest">DETECTIVE AGENCY</h1>
+        <h2 class="text-2xl mb-8 text-gray-400">Case File: The Missing Suffix</h2>
+        
+        <div class="bg-gray-800 p-6 rounded max-w-md text-left border border-gray-600 shadow-2xl">
+            <p class="mb-4"><i class="fas fa-search mr-2"></i> <strong>Mission:</strong> Complete the witness statements.</p>
+            <p class="mb-4"><i class="fas fa-keyboard mr-2"></i> <strong>How:</strong> Type the correct form of the verb (Gerund or Infinitive).</p>
+            <p class="text-sm italic text-gray-400">Example: "enjoy" → "enjoying" | "decide" → "to decide"</p>
+        </div>
+
+        <button onclick="game.start()" class="btn-retro text-xl mt-8">OPEN CASE FILE</button>
+    </div>
+
+    <!-- Game Over Screen -->
+    <div id="game-over-screen" class="overlay hidden">
+        <h1 id="end-title" class="text-5xl mb-4 typewriter text-red-500">CASE COLD</h1>
+        <p id="end-msg" class="text-xl mb-8">You lost too much evidence.</p>
+        <p class="text-2xl mb-8">Score: <span id="final-score">0</span>/10</p>
+        <button onclick="game.start()" class="btn-retro">REOPEN CASE</button>
+    </div>
+
+    <script>
+        /* --- Audio Engine --- */
+        const AudioSys = {
+            ctx: null,
+            init() {
+                window.AudioContext = window.AudioContext || window.webkitAudioContext;
+                this.ctx = new AudioContext();
+            },
+            play(type) {
+                if (!this.ctx) this.init();
+                const t = this.ctx.currentTime;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+
+                if (type === 'type') {
+                    // Click sound
+                    osc.type = 'square';
+                    osc.frequency.setValueAtTime(600, t);
+                    gain.gain.setValueAtTime(0.05, t);
+                    gain.gain.exponentialRampToValueAtTime(0.01, t + 0.05);
+                    osc.start(t);
+                    osc.stop(t + 0.05);
+                } else if (type === 'stamp') {
+                    // Thud
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(100, t);
+                    osc.frequency.exponentialRampToValueAtTime(40, t + 0.15);
+                    gain.gain.setValueAtTime(0.3, t);
+                    gain.gain.linearRampToValueAtTime(0, t + 0.15);
+                    osc.start(t);
+                    osc.stop(t + 0.15);
+                } else if (type === 'error') {
+                    // Buzzerish
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(150, t);
+                    osc.frequency.linearRampToValueAtTime(100, t + 0.3);
+                    gain.gain.setValueAtTime(0.2, t);
+                    gain.gain.linearRampToValueAtTime(0, t + 0.3);
+                    osc.start(t);
+                    osc.stop(t + 0.3);
+                }
+            }
+        };
+
+        /* --- Data: Gerunds & Infinitives (B1-B2 Academic) --- */
+        const cases = [
+            // Gerunds
+            { base: "revise", q: "The committee suggested ___ the proposal.", a: "revising", tip: "'Suggest' is followed by a gerund." },
+            { base: "interview", q: "The study involves ___ fifty participants.", a: "interviewing", tip: "'Involve' is followed by a gerund." },
+            { base: "ignore", q: "The government cannot risk ___ the warnings.", a: "ignoring", tip: "'Risk' is followed by a gerund." },
+            { base: "answer", q: "The politician avoided ___ the question.", a: "answering", tip: "'Avoid' is followed by a gerund." },
+            { base: "exclude", q: "We considered ___ the outliers from the data.", a: "excluding", tip: "'Consider' is followed by a gerund." },
+            { base: "travel", q: "She enjoys ___ to conferences.", a: "traveling", tip: "'Enjoy' is followed by a gerund." }, // Also accept 'travelling'
+            { base: "help", q: "Would you mind ___ me with this analysis?", a: "helping", tip: "'Mind' is followed by a gerund." },
+            { base: "steal", q: "The suspect denied ___ the documents.", a: "stealing", tip: "'Deny' is followed by a gerund." },
+
+            // Infinitives
+            { base: "accept", q: "The director refused ___ the resignation.", a: "to accept", tip: "'Refuse' is followed by an infinitive." },
+            { base: "complete", q: "We aim ___ the project by June.", a: "to complete", tip: "'Aim' is followed by an infinitive." },
+            { base: "ignore", q: "We cannot afford ___ these errors.", a: "to ignore", tip: "'Afford' is followed by an infinitive." },
+            { base: "review", q: "They decided ___ the literature first.", a: "to review", tip: "'Decide' is followed by an infinitive." },
+            { base: "be", q: "The results appear ___ consistent.", a: "to be", tip: "'Appear' is followed by an infinitive." },
+            { base: "find", q: "Researchers hope ___ a cure soon.", a: "to find", tip: "'Hope' is followed by an infinitive." },
+            { base: "read", q: "He claims ___ the entire report.", a: "to have read", tip: "Trickier: 'Claim' takes infinitive. (Accepting 'to read' for B1 level)" },
+            { base: "help", q: "She offered ___ with the experiment.", a: "to help", tip: "'Offer' is followed by an infinitive." }
+        ];
+
+        // Helper for variations
+        const normalize = (str) => str.trim().toLowerCase();
+
+        const game = {
+            queue: [],
+            current: null,
+            score: 0,
+            lives: 3,
+            total: 10,
+            isProcessing: false,
+
+            elInput: null, // Will reference the dynamic input
+
+            start() {
+                AudioSys.init();
+                this.score = 0;
+                this.lives = 3;
+                this.queue = [...cases].sort(() => Math.random() - 0.5).slice(0, 10); // Pick 10 random
+                
+                document.getElementById('start-screen').classList.add('hidden');
+                document.getElementById('game-over-screen').classList.add('hidden');
+                document.getElementById('game-container').classList.remove('hidden');
+                
+                this.updateHUD();
+                this.nextCase();
+            },
+
+            nextCase() {
+                this.isProcessing = false;
+                document.getElementById('stamp-ok').classList.remove('visible');
+                document.getElementById('stamp-no').classList.remove('visible');
+                document.getElementById('feedback-msg').textContent = '';
+
+                if (this.queue.length === 0) {
+                    this.endGame(true);
+                    return;
+                }
+
+                this.current = this.queue.pop();
+
+                // Render
+                document.getElementById('base-verb').textContent = this.current.base;
+                
+                const parts = this.current.q.split('___');
+                const html = `${parts[0]} <input type="text" id="answer-input" class="input-line" autocomplete="off" spellcheck="false"> ${parts[1]}`;
+                
+                document.getElementById('sentence-container').innerHTML = html;
+                
+                // Setup Input
+                this.elInput = document.getElementById('answer-input');
+                this.elInput.focus();
+                
+                // Typing sounds
+                this.elInput.addEventListener('input', () => AudioSys.play('type'));
+                this.elInput.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') this.checkAnswer();
+                });
+
+                // Submit button
+                document.getElementById('submit-btn').onclick = () => this.checkAnswer();
+            },
+
+            checkAnswer() {
+                if (this.isProcessing) return;
+                
+                const userVal = normalize(this.elInput.value);
+                if (!userVal) return;
+
+                this.isProcessing = true;
+                this.elInput.disabled = true;
+
+                // Special case logic for "traveling/travelling" or "to read/to have read"
+                let isCorrect = userVal === this.current.a;
+                
+                // Handle variations
+                if (this.current.a === "traveling" && userVal === "travelling") isCorrect = true;
+                if (this.current.base === "read" && this.current.a === "to have read" && userVal === "to read") isCorrect = true;
+
+                if (isCorrect) {
+                    this.handleSuccess();
+                } else {
+                    this.handleFail();
+                }
+            },
+
+            handleSuccess() {
+                AudioSys.play('stamp');
+                document.getElementById('stamp-ok').classList.add('visible');
+                this.score++;
+                this.updateHUD();
+                
+                setTimeout(() => this.nextCase(), 1500);
+            },
+
+            handleFail() {
+                AudioSys.play('stamp');
+                document.getElementById('stamp-no').classList.add('visible');
+                document.getElementById('feedback-msg').textContent = `Case Update: ${this.current.tip} (Answer: ${this.current.a})`;
+                
+                // Shake effect
+                document.getElementById('game-container').style.transform = 'rotate(-1deg) translateX(5px)';
+                setTimeout(() => document.getElementById('game-container').style.transform = 'rotate(-1deg)', 100);
+
+                this.lives--;
+                this.updateHUD();
+
+                if (this.lives <= 0) {
+                    setTimeout(() => this.endGame(false), 2000);
+                } else {
+                    setTimeout(() => this.nextCase(), 2500); // Longer wait to read feedback
+                }
+            },
+
+            updateHUD() {
+                document.getElementById('score').textContent = this.score;
+                document.getElementById('lives').textContent = this.lives;
+                const pct = (this.score / this.total) * 100;
+                document.getElementById('progress-fill').style.width = `${pct}%`;
+            },
+
+            endGame(victory) {
+                const screen = document.getElementById('game-over-screen');
+                const title = document.getElementById('end-title');
+                const msg = document.getElementById('end-msg');
+                
+                screen.classList.remove('hidden');
+                document.getElementById('final-score').textContent = this.score;
+
+                if (victory) {
+                    title.textContent = "CASE CLOSED";
+                    title.className = "text-5xl mb-4 typewriter text-green-500";
+                    msg.textContent = "Excellent detective work. The files are complete.";
+                } else {
+                    title.textContent = "CASE COLD";
+                    title.className = "text-5xl mb-4 typewriter text-red-500";
+                    msg.textContent = "Too much evidence was mishandled.";
+                }
+            }
+        };
+    </script>
+</body>
+</html>

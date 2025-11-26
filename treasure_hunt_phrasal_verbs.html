@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Treasure Hunter: Phrasal Verb Quest</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Pirata+One&family=Lato:wght@400;700&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --sand-light: #f4dba5;
+            --sand-dark: #e3c382;
+            --wood-dark: #5d4037;
+            --wood-light: #8d6e63;
+            --gold: #ffca28;
+            --parchment: #fff3e0;
+        }
+
+        body {
+            font-family: 'Lato', sans-serif;
+            background-color: #2c3e50;
+            overflow: hidden;
+            height: 100vh;
+            user-select: none;
+        }
+
+        /* Pirate Font for Headers */
+        h1, h2, .pirate-font {
+            font-family: 'Pirata One', cursive;
+        }
+
+        /* Background Pattern (Sand/Island) */
+        .game-bg {
+            background-color: var(--sand-light);
+            background-image: url("data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23d4b472' fill-opacity='0.2' fill-rule='evenodd'%3E%3Cpath d='M0 40L40 0H20L0 20M40 40V20L20 40'/%3E%3C/g%3E%3C/svg%3E");
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+
+        .overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.7);
+            z-index: 50;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* The Map Clue Area */
+        .map-scroll {
+            background: var(--parchment);
+            width: 90%;
+            max-width: 600px;
+            padding: 2rem;
+            border-radius: 4px;
+            position: relative;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            border: 10px solid var(--wood-dark);
+            text-align: center;
+            transform: rotate(-1deg);
+            margin-bottom: 20px;
+        }
+
+        .map-scroll::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: radial-gradient(transparent 50%, rgba(139, 69, 19, 0.1) 100%);
+            pointer-events: none;
+        }
+
+        /* The Dig Sites (Buttons) */
+        .grid-area {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1rem;
+            width: 95%;
+            max-width: 800px;
+            z-index: 10;
+        }
+
+        @media (min-width: 768px) {
+            .grid-area {
+                grid-template-columns: repeat(3, 1fr);
+            }
+        }
+
+        .dig-site {
+            background: var(--wood-light);
+            border: 4px solid var(--wood-dark);
+            border-radius: 15px;
+            height: 100px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            position: relative;
+            transition: transform 0.1s, filter 0.1s;
+            box-shadow: 0 6px 0 var(--wood-dark);
+            overflow: hidden;
+        }
+
+        .dig-site:active {
+            transform: translateY(4px);
+            box-shadow: 0 2px 0 var(--wood-dark);
+        }
+
+        .dig-site span {
+            font-size: 1.5rem;
+            color: #fff;
+            font-weight: bold;
+            text-shadow: 2px 2px 0 #000;
+            z-index: 5;
+        }
+
+        /* Chest/Sand Animation States */
+        .dig-site::after {
+            content: ''; 
+            position: absolute;
+            top:0; left:0; width:100%; height:100%;
+            background: rgba(0,0,0,0.1);
+            z-index: 1;
+        }
+
+        .dig-site.revealed-correct {
+            background: #27ae60;
+            border-color: #1e8449;
+            box-shadow: 0 6px 0 #1e8449;
+            animation: bounce 0.5s;
+        }
+
+        .dig-site.revealed-wrong {
+            background: #c0392b;
+            border-color: #922b21;
+            box-shadow: 0 6px 0 #922b21;
+            animation: shake 0.4s;
+        }
+
+        .dig-site i {
+            position: absolute;
+            font-size: 3rem;
+            opacity: 0;
+            transform: scale(0);
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            z-index: 10;
+        }
+
+        .dig-site.revealed-correct i {
+            opacity: 1;
+            transform: scale(1);
+            color: var(--gold);
+            text-shadow: 0 0 10px rgba(255, 215, 0, 0.8);
+        }
+
+        .dig-site.revealed-wrong i {
+            opacity: 1;
+            transform: scale(1);
+            color: #2c3e50;
+        }
+
+        /* Animations */
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px) rotate(-5deg); }
+            75% { transform: translateX(5px) rotate(5deg); }
+        }
+        
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+
+        @keyframes goldPop {
+            0% { opacity: 0; transform: translateY(0) scale(0.5); }
+            50% { opacity: 1; transform: translateY(-50px) scale(1.5); }
+            100% { opacity: 0; transform: translateY(-100px) scale(1); }
+        }
+
+        .coin-particle {
+            position: absolute;
+            pointer-events: none;
+            color: var(--gold);
+            font-size: 1.5rem;
+            animation: goldPop 0.8s forwards;
+            z-index: 100;
+        }
+
+        .hud {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            padding: 10px 20px;
+            display: flex;
+            justify-content: space-between;
+            z-index: 20;
+            background: rgba(93, 64, 55, 0.9);
+            color: var(--parchment);
+            border-bottom: 4px solid #3e2723;
+        }
+
+        .btn-primary {
+            background: var(--wood-light);
+            border: 2px solid var(--parchment);
+            color: white;
+            padding: 10px 30px;
+            font-size: 1.5rem;
+            border-radius: 8px;
+            cursor: pointer;
+            font-family: 'Pirata One', cursive;
+            transition: transform 0.1s;
+        }
+        .btn-primary:hover { transform: scale(1.05); background: #a1887f; }
+
+    </style>
+</head>
+<body>
+
+    <!-- Background -->
+    <div class="game-bg"></div>
+
+    <!-- Start Screen -->
+    <div id="start-screen" class="overlay">
+        <div class="text-center text-white">
+            <h1 class="text-6xl mb-2 text-yellow-400" style="text-shadow: 4px 4px 0 #000;">Phrasal Quest</h1>
+            <div class="text-4xl mb-8 pirate-font text-gray-300">The Lost Verbs</div>
+            
+            <div class="bg-white text-black p-6 rounded-lg max-w-md mx-auto mb-8 shadow-lg border-4 border-yellow-600">
+                <p class="text-lg mb-4">Ahoy! The treasure is buried under the sand.</p>
+                <p class="mb-2">1. Read the meaning on the <span class="font-bold text-yellow-700">Treasure Map</span>.</p>
+                <p class="mb-2">2. Dig up the chest with the matching <span class="font-bold text-blue-700">Phrasal Verb</span>.</p>
+                <p class="text-sm text-gray-500 italic">Topics: Look, Give, Set, Put, Turn, Take</p>
+            </div>
+
+            <button onclick="game.start()" class="btn-primary text-2xl shadow-[0_0_20px_rgba(255,200,0,0.5)]">
+                Start Adventure
+            </button>
+        </div>
+    </div>
+
+    <!-- Game Over Screen -->
+    <div id="game-over" class="overlay hidden">
+        <div class="text-center text-white">
+            <h1 id="end-title" class="text-6xl mb-4 text-red-500 pirate-font">Game Over</h1>
+            <p class="text-2xl mb-6">Gold Collected: <span id="final-score" class="text-yellow-400 font-bold">0</span></p>
+            <button onclick="game.start()" class="btn-primary">Try Again</button>
+        </div>
+    </div>
+
+    <!-- Game HUD -->
+    <div class="hud">
+        <div class="flex items-center gap-2">
+            <i class="fas fa-coins text-yellow-400"></i>
+            <span id="score" class="text-xl font-bold">0</span>
+        </div>
+        <div class="flex items-center gap-2">
+            <i class="fas fa-heart text-red-500"></i>
+            <span id="lives" class="text-xl font-bold">3</span>
+        </div>
+    </div>
+
+    <!-- Main Game Area -->
+    <div id="game-ui" class="hidden w-full h-full flex flex-col items-center justify-center pt-16 relative z-10">
+        
+        <!-- The Map/Question -->
+        <div class="map-scroll">
+            <h2 class="text-2xl text-amber-900 mb-2 pirate-font">Treasure Map Clue:</h2>
+            <p id="clue-text" class="text-2xl font-bold text-gray-800">"To discover or investigate something"</p>
+        </div>
+
+        <!-- The Grid -->
+        <div id="grid" class="grid-area">
+            <!-- Dig Sites injected by JS -->
+        </div>
+
+    </div>
+
+    <script>
+        /* --- Data: Phrasal Verbs --- */
+        const phrasalVerbs = [
+            // LOOK
+            { verb: "Look into", def: "To investigate or research a problem", group: "look" },
+            { verb: "Look up", def: "To search for information (e.g., in a dictionary)", group: "look" },
+            { verb: "Look after", def: "To take care of someone or something", group: "look" },
+            { verb: "Look forward to", def: "To feel excited about something in the future", group: "look" },
+            { verb: "Look down on", def: "To feel superior to someone", group: "look" },
+            
+            // GIVE
+            { verb: "Give up", def: "To stop doing something / quit", group: "give" },
+            { verb: "Give in", def: "To surrender or agree to something you didn't want to", group: "give" },
+            { verb: "Give away", def: "To reveal a secret OR donate something", group: "give" },
+            
+            // PUT
+            { verb: "Put off", def: "To delay or postpone until later", group: "put" },
+            { verb: "Put up with", def: "To tolerate or endure something unpleasant", group: "put" },
+            { verb: "Put on", def: "To dress oneself in clothing", group: "put" },
+            { verb: "Put out", def: "To extinguish a fire", group: "put" },
+
+            // SET
+            { verb: "Set up", def: "To arrange, organize, or assemble something", group: "set" },
+            { verb: "Set off", def: "To start a journey", group: "set" },
+
+            // TURN
+            { verb: "Turn down", def: "To reject an offer or lower volume", group: "turn" },
+            { verb: "Turn up", def: "To arrive unexpectedly or increase volume", group: "turn" },
+            { verb: "Turn into", def: "To become or transform into", group: "turn" },
+
+            // TAKE
+            { verb: "Take off", def: "To leave the ground (plane) or remove clothes", group: "take" },
+            { verb: "Take after", def: "To resemble a family member", group: "take" },
+            { verb: "Take over", def: "To assume control of something", group: "take" }
+        ];
+
+        /* --- Audio Engine --- */
+        const sfx = {
+            ctx: null,
+            init() {
+                window.AudioContext = window.AudioContext || window.webkitAudioContext;
+                this.ctx = new AudioContext();
+            },
+            play(type) {
+                if (!this.ctx) this.init();
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                const t = this.ctx.currentTime;
+
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+
+                if (type === 'win') {
+                    // High Ding
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(880, t); // A5
+                    osc.frequency.exponentialRampToValueAtTime(1760, t + 0.1);
+                    gain.gain.setValueAtTime(0.3, t);
+                    gain.gain.exponentialRampToValueAtTime(0.01, t + 0.5);
+                    osc.start(t);
+                    osc.stop(t + 0.5);
+                } else if (type === 'fail') {
+                    // Low Thud
+                    osc.type = 'square';
+                    osc.frequency.setValueAtTime(150, t);
+                    osc.frequency.linearRampToValueAtTime(50, t + 0.2);
+                    gain.gain.setValueAtTime(0.3, t);
+                    gain.gain.linearRampToValueAtTime(0.01, t + 0.2);
+                    osc.start(t);
+                    osc.stop(t + 0.2);
+                } else if (type === 'dig') {
+                    // Noise burst
+                    // Noise logic is complex in raw API, simulating with low saw
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(100, t);
+                    osc.frequency.linearRampToValueAtTime(0, t + 0.1);
+                    gain.gain.setValueAtTime(0.2, t);
+                    gain.gain.linearRampToValueAtTime(0, t + 0.1);
+                    osc.start(t);
+                    osc.stop(t + 0.1);
+                }
+            }
+        };
+
+        /* --- Game Logic --- */
+        const game = {
+            score: 0,
+            lives: 3,
+            currentRound: null,
+            isProcessing: false,
+            
+            // UI Elements
+            elStart: document.getElementById('start-screen'),
+            elGame: document.getElementById('game-ui'),
+            elOver: document.getElementById('game-over'),
+            elClue: document.getElementById('clue-text'),
+            elGrid: document.getElementById('grid'),
+            elScore: document.getElementById('score'),
+            elLives: document.getElementById('lives'),
+
+            start() {
+                sfx.init();
+                this.score = 0;
+                this.lives = 3;
+                this.updateHUD();
+                
+                this.elStart.classList.add('hidden');
+                this.elOver.classList.add('hidden');
+                this.elGame.classList.remove('hidden');
+                
+                this.nextRound();
+            },
+
+            nextRound() {
+                this.isProcessing = false;
+                
+                // 1. Select Target
+                const target = phrasalVerbs[Math.floor(Math.random() * phrasalVerbs.length)];
+                this.currentRound = target;
+
+                // 2. Generate Distractors
+                // Try to find distractors with the same verb base (hard mode) or random (easy mode)
+                // Let's do a mix: 2 same verb group, 3 random
+                let options = [target];
+                
+                const sameGroup = phrasalVerbs.filter(p => p.group === target.group && p.verb !== target.verb);
+                const others = phrasalVerbs.filter(p => p.group !== target.group);
+                
+                // Shuffle arrays
+                sameGroup.sort(() => Math.random() - 0.5);
+                others.sort(() => Math.random() - 0.5);
+
+                // Add 2 similar distractors (if available)
+                if(sameGroup.length >= 2) {
+                    options.push(sameGroup[0], sameGroup[1]);
+                    // Fill rest with randoms to make 6 total
+                    options.push(others[0], others[1], others[2]);
+                } else {
+                    // Fallback if not enough similar verbs
+                    options = options.concat(others.slice(0, 5));
+                }
+
+                // Shuffle final options
+                options.sort(() => Math.random() - 0.5);
+                // Limit to 6 items just in case
+                options = options.slice(0, 6);
+
+                // 3. Render
+                this.render(target.def, options);
+            },
+
+            render(clue, options) {
+                this.elClue.textContent = `"${clue}"`;
+                this.elGrid.innerHTML = '';
+
+                options.forEach(opt => {
+                    const btn = document.createElement('div');
+                    btn.className = 'dig-site';
+                    
+                    // Icon (hidden initially)
+                    const isCorrect = opt.verb === this.currentRound.verb;
+                    const iconClass = isCorrect ? 'fa-gem' : 'fa-skull-crossbones';
+                    
+                    btn.innerHTML = `
+                        <span>${opt.verb}</span>
+                        <i class="fas ${iconClass}"></i>
+                    `;
+
+                    btn.onclick = (e) => this.handleClick(btn, isCorrect, e);
+                    this.elGrid.appendChild(btn);
+                });
+            },
+
+            handleClick(btn, isCorrect, event) {
+                if (this.isProcessing) return;
+                
+                if (btn.classList.contains('revealed-wrong')) return; // Already clicked
+
+                sfx.play('dig');
+
+                if (isCorrect) {
+                    this.isProcessing = true;
+                    btn.classList.add('revealed-correct');
+                    sfx.play('win');
+                    this.spawnParticles(event.clientX, event.clientY);
+                    
+                    this.score += 100;
+                    this.updateHUD();
+
+                    setTimeout(() => {
+                        this.nextRound();
+                    }, 1200);
+
+                } else {
+                    btn.classList.add('revealed-wrong');
+                    // Hide text so skull is visible clearly
+                    btn.querySelector('span').style.opacity = 0.3;
+                    
+                    sfx.play('fail');
+                    this.lives--;
+                    this.updateHUD();
+
+                    if (this.lives <= 0) {
+                        this.isProcessing = true;
+                        setTimeout(() => this.gameOver(), 800);
+                    }
+                }
+            },
+
+            spawnParticles(x, y) {
+                for (let i = 0; i < 5; i++) {
+                    const p = document.createElement('i');
+                    p.className = 'fas fa-coins coin-particle';
+                    p.style.left = (x + (Math.random()*40 - 20)) + 'px';
+                    p.style.top = (y + (Math.random()*40 - 20)) + 'px';
+                    document.body.appendChild(p);
+                    setTimeout(() => p.remove(), 800);
+                }
+            },
+
+            updateHUD() {
+                this.elScore.textContent = this.score;
+                this.elLives.textContent = this.lives;
+            },
+
+            gameOver() {
+                this.elGame.classList.add('hidden');
+                this.elOver.classList.remove('hidden');
+                document.getElementById('final-score').textContent = this.score;
+                
+                const title = document.getElementById('end-title');
+                if(this.score > 1000) {
+                    title.textContent = "Pirate King!";
+                    title.className = "text-6xl mb-4 text-yellow-400 pirate-font";
+                } else {
+                    title.textContent = "Walk the Plank!";
+                    title.className = "text-6xl mb-4 text-red-500 pirate-font";
+                }
+            }
+        };
+    </script>
+</body>
+</html>

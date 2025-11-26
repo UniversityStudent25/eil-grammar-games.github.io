@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jungle River Run: Parts of Speech</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Bangers&family=Roboto+Mono:wght@400;700&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --water-color: #4fc3f7;
+            --water-dark: #0288d1;
+            --jungle-green: #1b5e20;
+            --wood-brown: #5d4037;
+        }
+
+        body {
+            font-family: 'Roboto Mono', monospace;
+            background-color: #000;
+            overflow: hidden;
+            height: 100vh;
+            user-select: none;
+        }
+
+        h1, h2, .game-font {
+            font-family: 'Bangers', cursive;
+            letter-spacing: 2px;
+        }
+
+        /* Game Container */
+        #game-container {
+            position: relative;
+            width: 100%;
+            max-width: 600px;
+            height: 100vh;
+            margin: 0 auto;
+            background-color: var(--water-color);
+            overflow: hidden;
+            border-left: 4px solid var(--jungle-green);
+            border-right: 4px solid var(--jungle-green);
+        }
+
+        /* Scrolling River Effect */
+        .river-bg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 200%;
+            background: 
+                radial-gradient(circle at 50% 50%, rgba(255,255,255,0.2) 0%, transparent 10%),
+                linear-gradient(to bottom, var(--water-color), var(--water-dark));
+            background-size: 100px 100px, 100% 100%;
+            animation: flow 3s linear infinite;
+            z-index: 0;
+        }
+
+        @keyframes flow {
+            from { transform: translateY(-50%); }
+            to { transform: translateY(0); }
+        }
+
+        /* River Banks */
+        .bank {
+            position: absolute;
+            top: 0;
+            height: 100%;
+            width: 20px;
+            background: url("data:image/svg+xml,%3Csvg width='20' height='40' viewBox='0 0 20 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 0h20v40H0z' fill='%231b5e20'/%3E%3Cpath d='M0 0c5 10 15 10 20 20-5 10-15 10-20 20V0z' fill='%232e7d32'/%3E%3C/svg%3E");
+            z-index: 10;
+        }
+        .bank.left { left: 0; }
+        .bank.right { right: 0; transform: scaleX(-1); }
+
+        /* The Boat */
+        #boat {
+            position: absolute;
+            bottom: 140px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 3rem;
+            color: var(--wood-brown);
+            transition: left 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            z-index: 20;
+            filter: drop-shadow(0 4px 4px rgba(0,0,0,0.3));
+        }
+
+        #boat i {
+            display: block;
+            transform: rotate(-45deg); /* Fix icon orientation */
+        }
+
+        /* Obstacles */
+        .obstacle {
+            position: absolute;
+            bottom: 150px;
+            font-size: 2.5rem;
+            opacity: 0;
+            transition: opacity 0.2s, transform 0.3s;
+            z-index: 15;
+        }
+
+        .obstacle.rock { color: #555; }
+        .obstacle.croc { color: #2e7d32; }
+        .obstacle.visible { opacity: 1; transform: scale(1.2); }
+
+        /* UI Layers */
+        .ui-layer {
+            position: absolute;
+            width: 100%;
+            z-index: 50;
+            pointer-events: none;
+        }
+
+        /* Top HUD */
+        .hud {
+            top: 0;
+            padding: 1rem;
+            display: flex;
+            justify-content: space-between;
+            background: rgba(0,0,0,0.5);
+            color: white;
+            backdrop-filter: blur(4px);
+        }
+
+        /* Question Panel */
+        .question-panel {
+            top: 80px;
+            padding: 0 20px;
+            text-align: center;
+        }
+        
+        .card {
+            background: white;
+            color: #333;
+            padding: 1.5rem;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+            border-bottom: 6px solid #ccc;
+            pointer-events: auto;
+        }
+
+        .highlight {
+            color: #d84315;
+            font-weight: bold;
+            text-decoration: underline;
+            text-decoration-thickness: 3px;
+        }
+
+        /* Controls (River Forks) */
+        .controls {
+            position: absolute;
+            bottom: 0;
+            width: 100%;
+            height: 120px;
+            display: flex;
+            z-index: 40;
+            background: rgba(255,255,255,0.9);
+            border-top: 4px solid var(--wood-brown);
+        }
+
+        .control-btn {
+            flex: 1;
+            border: none;
+            border-right: 1px solid #ccc;
+            background: none;
+            cursor: pointer;
+            font-family: 'Bangers', cursive;
+            font-size: 1.2rem;
+            color: var(--wood-brown);
+            transition: background 0.2s;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+
+        .control-btn:hover { background: #e0e0e0; }
+        .control-btn:active { background: #bdbdbd; }
+        .control-btn:last-child { border-right: none; }
+        
+        .control-btn::after {
+            content: '';
+            position: absolute;
+            top: -20px;
+            left: 50%;
+            transform: translateX(-50%);
+            border-left: 10px solid transparent;
+            border-right: 10px solid transparent;
+            border-bottom: 20px solid rgba(255,255,255,0.9);
+        }
+
+        /* Screens */
+        .screen {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(27, 94, 32, 0.95);
+            z-index: 100;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: white;
+        }
+
+        .btn-start {
+            background: #ffca28;
+            color: #3e2723;
+            font-family: 'Bangers', cursive;
+            font-size: 2rem;
+            padding: 1rem 3rem;
+            border-radius: 50px;
+            border: 4px solid #fff;
+            cursor: pointer;
+            transition: transform 0.1s;
+            box-shadow: 0 5px 0 #c79a00;
+        }
+        .btn-start:hover { transform: scale(1.05); }
+        .btn-start:active { transform: scale(0.95); box-shadow: 0 2px 0 #c79a00; }
+
+        /* Animations */
+        .shake { animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both; }
+        @keyframes shake {
+            10%, 90% { transform: translate3d(-1px, 0, 0); }
+            20%, 80% { transform: translate3d(2px, 0, 0); }
+            30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
+            40%, 60% { transform: translate3d(4px, 0, 0); }
+        }
+
+    </style>
+</head>
+<body>
+
+    <div id="game-container">
+        <!-- Scrolling Background -->
+        <div class="river-bg"></div>
+        <div class="bank left"></div>
+        <div class="bank right"></div>
+
+        <!-- Boat -->
+        <div id="boat"><i class="fas fa-sailboat"></i></div>
+
+        <!-- Obstacles (Hidden by default, placed relative to lanes) -->
+        <div id="obstacle-0" class="obstacle rock" style="left: 10%;"><i class="fas fa-mountain"></i></div>
+        <div id="obstacle-1" class="obstacle croc" style="left: 35%;"><i class="fas fa-dragon"></i></div>
+        <div id="obstacle-2" class="obstacle rock" style="left: 60%;"><i class="fas fa-mountain"></i></div>
+        <div id="obstacle-3" class="obstacle croc" style="left: 85%;"><i class="fas fa-dragon"></i></div>
+
+        <!-- HUD -->
+        <div class="ui-layer hud">
+            <div class="flex items-center gap-2">
+                <i class="fas fa-map-marker-alt text-yellow-400"></i>
+                <span>Distance: <span id="dist-display">10</span>km</span>
+            </div>
+            <div class="flex items-center gap-2">
+                <i class="fas fa-heart text-red-500"></i>
+                <span id="lives-display">3</span>
+            </div>
+        </div>
+
+        <!-- Question Panel -->
+        <div class="ui-layer question-panel">
+            <div class="card" id="q-card">
+                <p class="text-sm text-gray-500 mb-2 font-bold uppercase tracking-wider">Identify the part of speech</p>
+                <p id="q-text" class="text-xl md:text-2xl leading-relaxed">Loading...</p>
+            </div>
+            <div id="feedback" class="mt-4 text-white font-bold text-lg opacity-0 transition-opacity shadow-black drop-shadow-md">
+                Watch out!
+            </div>
+        </div>
+
+        <!-- Controls -->
+        <div class="controls">
+            <button class="control-btn" onclick="game.choose(0, 'Noun')">
+                <i class="fas fa-cube mb-1 text-2xl"></i> NOUN
+            </button>
+            <button class="control-btn" onclick="game.choose(1, 'Verb')">
+                <i class="fas fa-running mb-1 text-2xl"></i> VERB
+            </button>
+            <button class="control-btn" onclick="game.choose(2, 'Adjective')">
+                <i class="fas fa-paint-brush mb-1 text-2xl"></i> ADJ
+            </button>
+            <button class="control-btn" onclick="game.choose(3, 'Adverb')">
+                <i class="fas fa-tachometer-alt mb-1 text-2xl"></i> ADV
+            </button>
+        </div>
+    </div>
+
+    <!-- Start Screen -->
+    <div id="start-screen" class="screen">
+        <h1 class="text-6xl text-yellow-400 mb-4 drop-shadow-lg">Jungle River Run</h1>
+        <p class="mb-8 text-xl text-center max-w-md">
+            Navigate the river by identifying parts of speech. 
+            Reach the Hidden Temple before you run out of lives!
+        </p>
+        <div class="grid grid-cols-2 gap-4 mb-8 text-left text-sm bg-green-900 p-4 rounded-lg border border-green-700">
+            <div><i class="fas fa-cube text-yellow-400 w-6"></i> Noun (Thing/Idea)</div>
+            <div><i class="fas fa-running text-yellow-400 w-6"></i> Verb (Action/State)</div>
+            <div><i class="fas fa-paint-brush text-yellow-400 w-6"></i> Adj (Describes Noun)</div>
+            <div><i class="fas fa-tachometer-alt text-yellow-400 w-6"></i> Adv (Modifies Verb)</div>
+        </div>
+        <button onclick="game.start()" class="btn-start">Start Expedition</button>
+    </div>
+
+    <!-- Game Over Screen -->
+    <div id="game-over-screen" class="screen hidden">
+        <h1 id="end-title" class="text-6xl mb-4 text-white drop-shadow-lg">Game Over</h1>
+        <p id="end-msg" class="text-2xl mb-8">The river claimed your boat.</p>
+        <button onclick="game.start()" class="btn-start">Try Again</button>
+    </div>
+
+    <script>
+        // Audio System
+        const AudioSys = {
+            ctx: null,
+            init() {
+                window.AudioContext = window.AudioContext || window.webkitAudioContext;
+                this.ctx = new AudioContext();
+            },
+            play(type) {
+                if (!this.ctx) this.init();
+                const t = this.ctx.currentTime;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+
+                if (type === 'move') {
+                    // Water swish
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(200, t);
+                    osc.frequency.exponentialRampToValueAtTime(50, t + 0.3);
+                    gain.gain.setValueAtTime(0.1, t);
+                    gain.gain.linearRampToValueAtTime(0, t + 0.3);
+                    osc.start(t);
+                    osc.stop(t + 0.3);
+                } else if (type === 'crash') {
+                    // Low noise/thud
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(100, t);
+                    osc.frequency.exponentialRampToValueAtTime(20, t + 0.4);
+                    gain.gain.setValueAtTime(0.2, t);
+                    gain.gain.linearRampToValueAtTime(0, t + 0.4);
+                    osc.start(t);
+                    osc.stop(t + 0.4);
+                } else if (type === 'win') {
+                    // Ding
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(523, t);
+                    osc.frequency.exponentialRampToValueAtTime(1046, t + 0.1);
+                    gain.gain.setValueAtTime(0.1, t);
+                    gain.gain.linearRampToValueAtTime(0, t + 0.6);
+                    osc.start(t);
+                    osc.stop(t + 0.6);
+                }
+            }
+        };
+
+        // Data: Academic English Sentences (B1-B2)
+        const questions = [
+            // Nouns
+            { text: "The <span class='highlight'>analysis</span> yielded significant results.", type: "Noun" },
+            { text: "Every <span class='highlight'>component</span> of the machine is essential.", type: "Noun" },
+            { text: "Their <span class='highlight'>hypothesis</span> was proven incorrect.", type: "Noun" },
+            { text: "The government implemented a new <span class='highlight'>strategy</span>.", type: "Noun" },
+            { text: "There is a general <span class='highlight'>consensus</span> among experts.", type: "Noun" },
+            
+            // Verbs
+            { text: "The results <span class='highlight'>indicate</span> a strong correlation.", type: "Verb" },
+            { text: "We must <span class='highlight'>establish</span> clear guidelines.", type: "Verb" },
+            { text: "Prices tend to <span class='highlight'>fluctuate</span> wildly.", type: "Verb" },
+            { text: "The study <span class='highlight'>demonstrates</span> the effectiveness of the drug.", type: "Verb" },
+            { text: "They <span class='highlight'>investigated</span> the incident thoroughly.", type: "Verb" },
+
+            // Adjectives
+            { text: "The findings are <span class='highlight'>preliminary</span> and require review.", type: "Adjective" },
+            { text: "We need a more <span class='highlight'>specific</span> example.", type: "Adjective" },
+            { text: "The <span class='highlight'>potential</span> benefits are enormous.", type: "Adjective" },
+            { text: "This is an <span class='highlight'>alternative</span> solution to the problem.", type: "Adjective" },
+            { text: "The data is <span class='highlight'>sufficient</span> for our needs.", type: "Adjective" },
+
+            // Adverbs
+            { text: "The population has increased <span class='highlight'>dramatically</span>.", type: "Adverb" },
+            { text: "She was <span class='highlight'>subsequently</span> promoted to manager.", type: "Adverb" },
+            { text: "The theory is <span class='highlight'>statistically</span> invalid.", type: "Adverb" },
+            { text: "We <span class='highlight'>typically</span> meet on Tuesdays.", type: "Adverb" },
+            { text: "They <span class='highlight'>eventually</span> reached an agreement.", type: "Adverb" }
+        ];
+
+        const game = {
+            lives: 3,
+            distance: 10,
+            currentQ: null,
+            isProcessing: false,
+
+            elBoat: document.getElementById('boat'),
+            elDist: document.getElementById('dist-display'),
+            elLives: document.getElementById('lives-display'),
+            elQ: document.getElementById('q-text'),
+            elFeedback: document.getElementById('feedback'),
+            
+            start() {
+                AudioSys.init();
+                this.lives = 3;
+                this.distance = 10;
+                this.updateHUD();
+                document.getElementById('start-screen').classList.add('hidden');
+                document.getElementById('game-over-screen').classList.add('hidden');
+                
+                // Reset boat position
+                this.elBoat.style.left = '50%';
+                
+                this.nextTurn();
+            },
+
+            nextTurn() {
+                if(this.distance <= 0) {
+                    this.endGame(true);
+                    return;
+                }
+                
+                this.isProcessing = false;
+                this.currentQ = questions[Math.floor(Math.random() * questions.length)];
+                this.elQ.innerHTML = this.currentQ.text;
+                
+                this.elFeedback.style.opacity = '0';
+                
+                // Hide all obstacles
+                document.querySelectorAll('.obstacle').forEach(el => el.classList.remove('visible'));
+            },
+
+            choose(laneIndex, type) {
+                if (this.isProcessing) return;
+                this.isProcessing = true;
+
+                // Calculate boat position based on lane (0-3)
+                // Lanes are roughly: 12.5%, 37.5%, 62.5%, 87.5%
+                const positions = ['12.5%', '37.5%', '62.5%', '87.5%'];
+                this.elBoat.style.left = positions[laneIndex];
+                
+                AudioSys.play('move');
+
+                // Delay for animation
+                setTimeout(() => {
+                    this.checkAnswer(type, laneIndex);
+                }, 500);
+            },
+
+            checkAnswer(selectedType, laneIndex) {
+                if (selectedType === this.currentQ.type) {
+                    // Correct
+                    AudioSys.play('win');
+                    this.distance--;
+                    this.updateHUD();
+                    this.showFeedback("Safe passage!", "text-green-300");
+                    setTimeout(() => this.nextTurn(), 1000);
+                } else {
+                    // Wrong
+                    AudioSys.play('crash');
+                    this.lives--;
+                    this.updateHUD();
+                    
+                    // Show obstacle in that lane
+                    const obs = document.getElementById(`obstacle-${laneIndex}`);
+                    obs.classList.add('visible');
+                    
+                    // Shake boat/screen
+                    document.getElementById('game-container').classList.add('shake');
+                    setTimeout(() => document.getElementById('game-container').classList.remove('shake'), 500);
+
+                    this.showFeedback(`Crash! That was a ${this.currentQ.type}.`, "text-red-400");
+
+                    if(this.lives <= 0) {
+                        setTimeout(() => this.endGame(false), 1500);
+                    } else {
+                        setTimeout(() => this.nextTurn(), 1500);
+                    }
+                }
+            },
+
+            showFeedback(msg, colorClass) {
+                this.elFeedback.textContent = msg;
+                this.elFeedback.className = `mt-4 font-bold text-lg transition-opacity shadow-black drop-shadow-md ${colorClass}`;
+                this.elFeedback.style.opacity = '1';
+            },
+
+            updateHUD() {
+                this.elDist.textContent = this.distance;
+                this.elLives.textContent = this.lives;
+            },
+
+            endGame(victory) {
+                const screen = document.getElementById('game-over-screen');
+                const title = document.getElementById('end-title');
+                const msg = document.getElementById('end-msg');
+                
+                screen.classList.remove('hidden');
+                
+                if(victory) {
+                    title.textContent = "TEMPLE FOUND!";
+                    title.className = "text-6xl mb-4 text-yellow-400 drop-shadow-lg game-font";
+                    msg.textContent = "You navigated the academic river successfully.";
+                } else {
+                    title.textContent = "GAME OVER";
+                    title.className = "text-6xl mb-4 text-red-500 drop-shadow-lg game-font";
+                    msg.textContent = "Your boat has capsized.";
+                }
+            }
+        };
+    </script>
+</body>
+</html>
